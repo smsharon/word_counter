@@ -78,11 +78,11 @@ from decouple import config
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('db_name')
+        'NAME': config('DB_NAME'),
         'USER': config('DB_USER'),
-        'PASSWORD': config(DB_PASSWORD),
+        'PASSWORD': config('DB_PASSWORD'),
         'HOST': 'localhost',
-        'PORT': '5432',
+        'PORT': '5433',
     }
 }
 
