@@ -40,8 +40,20 @@ def analyze_text(request):
             text = data.get("text")
 
             # validation
-            if not text:
-                return JsonResponse({"error": "Text is required"}, status=400)
+            if text is None:
+                return JsonResponse({
+                    "error": "Text field is required"
+                }, status=400)
+
+            if not isinstance(text, str):
+                return JsonResponse({
+                    "error": "Text must be a string"
+                }, status=400)
+
+            if text.strip() == "":
+                return JsonResponse({
+                    "error": "Text cannot be empty"
+                }, status=400)
 
             # 🔥 CALL BUSINESS LOGIC
             result = analyze_text_logic(text)
@@ -60,8 +72,16 @@ def analyze_text(request):
                 **result
             }, status=201)
 
+        except json.JSONDecodeError:
+            return JsonResponse({
+                "error": "Invalid JSON format"
+            }, status=400)
+
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)    
+            return JsonResponse({
+                "error": "Internal server error",
+                "details": str(e)
+            }, status=500)    
 
 def get_history(request):
     analyses = TextAnalysis.objects.all().values(
@@ -71,24 +91,32 @@ def get_history(request):
     analyses_list = list(analyses)
 
     if not analyses_list:
-        return JsonResponse({"message": "No history found"}, status=404)
+        return JsonResponse({
+            "message": "No history found",
+            "data": []
+        }, status=200)
 
-    return JsonResponse(analyses_list, safe=False)
+    return JsonResponse({
+        "count": len(analyses_list),
+        "data": analyses_list
+    }, status=200)
 
 def get_single_analysis(request, id):
     try:
         analysis = TextAnalysis.objects.get(id=id)
 
-        data = {
-            "id": analysis.id,
-            "text": analysis.text,
-            "word_count": analysis.word_count,
-            "character_count": analysis.character_count,
-            "sentence_count": analysis.sentence_count,
-            "created_at": analysis.created_at
-        }
-
-        return JsonResponse(data)
+        return JsonResponse({
+            "data": {
+                "id": analysis.id,
+                "text": analysis.text,
+                "word_count": analysis.word_count,
+                "character_count": analysis.character_count,
+                "sentence_count": analysis.sentence_count,
+                "created_at": analysis.created_at
+            }
+        }, status=200)
 
     except TextAnalysis.DoesNotExist:
-        return JsonResponse({"error": "Analysis not found"}, status=404)                
+        return JsonResponse({
+            "error": "Analysis not found"
+        }, status=404)
