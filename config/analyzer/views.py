@@ -4,6 +4,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
 from .models import TextAnalysis
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 
 def analyze_text_logic(text):
@@ -60,6 +63,7 @@ def analyze_text(request):
 
             # save to database
             analysis = TextAnalysis.objects.create(
+                user=request.user,
                 text=text,
                 word_count=result["word_count"],
                 character_count=result["character_count"],
@@ -83,8 +87,11 @@ def analyze_text(request):
                 "details": str(e)
             }, status=500)    
 
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def get_history(request):
-    analyses = TextAnalysis.objects.all().values(
+    analyses = TextAnalysis.objects.filter(user=request.user).values(
         "id", "text", "word_count", "character_count", "sentence_count", "created_at"
     )
 
@@ -101,9 +108,12 @@ def get_history(request):
         "data": analyses_list
     }, status=200)
 
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def get_single_analysis(request, id):
     try:
-        analysis = TextAnalysis.objects.get(id=id)
+        analysis = TextAnalysis.objects.get(id=id, user=request.user)
 
         return JsonResponse({
             "data": {
