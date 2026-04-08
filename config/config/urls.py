@@ -30,18 +30,16 @@ schema_view = get_schema_view(
         - Analyze text
         - Get word, character, and sentence counts
         - View analysis history
-
-        Built with Django, PostgreSQL, and token authentication.
-        """ ,
+        Built with Django and token authentication.
+        """,
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),
-    
 )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('analyzer.urls')),
-    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0)),
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='swagger'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0)),
 ]
