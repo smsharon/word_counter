@@ -16,8 +16,32 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+from rest_framework.authentication import TokenAuthentication
+
+schema_view = get_schema_view(
+    openapi.Info(
+        title="Word Counter API",
+        default_version='v1',
+        description="""
+        This API allows users to:
+        - Analyze text
+        - Get word, character, and sentence counts
+        - View analysis history
+
+        Built with Django, PostgreSQL, and token authentication.
+        """ ,
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+    
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('analyzer.urls')),
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0)),
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0)),
 ]

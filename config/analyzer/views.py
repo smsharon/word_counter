@@ -1,12 +1,12 @@
 import re
 from collections import Counter
-from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-import json
 from .models import TextAnalysis
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
+from .serializers import AnalyzeTextSerializer
+from drf_yasg.utils import swagger_auto_schema
 
 
 def analyze_text_logic(text):
@@ -34,58 +34,45 @@ def analyze_text_logic(text):
     }
 
 
-
-@csrf_exempt
+@swagger_auto_schema(
+    method='post',
+    request_body=AnalyzeTextSerializer,
+    operation_description="Analyze input text and return word, character, and sentence counts."
+)
+@api_view(['POST'])
 def analyze_text(request):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            text = data.get("text")
+    try:
+        serializer = AnalyzeTextSerializer(data=request.data)
+        if not serializer.is_valid():
+            return JsonResponse(serializer.errors, status=400)
+        text = serializer.validated_data["text"]
 
-            # validation
-            if text is None:
-                return JsonResponse({
-                    "error": "Text field is required"
-                }, status=400)
+        if text.strip() == "":
+            return JsonResponse({"error": "Text cannot be empty"}, status=400)
 
-            if not isinstance(text, str):
-                return JsonResponse({
-                    "error": "Text must be a string"
-                }, status=400)
+        # business logic
+        result = analyze_text_logic(text)
 
-            if text.strip() == "":
-                return JsonResponse({
-                    "error": "Text cannot be empty"
-                }, status=400)
+        # save
+        analysis = TextAnalysis.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            text=text,
+            word_count=result["word_count"],
+            character_count=result["character_count"],
+            sentence_count=result["sentence_count"]
+        )
 
-            # 🔥 CALL BUSINESS LOGIC
-            result = analyze_text_logic(text)
+        return JsonResponse({
+            "id": analysis.id,
+            "text": text,
+            **result
+        }, status=201)
 
-            # save to database
-            analysis = TextAnalysis.objects.create(
-                user=request.user,
-                text=text,
-                word_count=result["word_count"],
-                character_count=result["character_count"],
-                sentence_count=result["sentence_count"]
-            )
-
-            return JsonResponse({
-                "id": analysis.id,
-                "text": text,
-                **result
-            }, status=201)
-
-        except json.JSONDecodeError:
-            return JsonResponse({
-                "error": "Invalid JSON format"
-            }, status=400)
-
-        except Exception as e:
-            return JsonResponse({
-                "error": "Internal server error",
-                "details": str(e)
-            }, status=500)    
+    except Exception as e:
+        return JsonResponse({
+            "error": "Internal server error",
+            "details": str(e)
+        }, status=500)
 
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
