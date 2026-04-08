@@ -1,0 +1,34 @@
+name: Django CI
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: Install dependencies
+      run: |
+        cd config
+        pip install -r requirements.txt
+
+    - name: Run migrations
+      run: |
+        cd config
+        python manage.py migrate
+
+    - name: Run tests
+      run: |
+        cd config
+        python manage.py test
